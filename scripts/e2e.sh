@@ -142,6 +142,7 @@ if [[ -z "${before_metric}" ]]; then
   echo "error: failed to read rexec_audit_commands_total from metrics endpoint" >&2
   exit 1
 fi
+echo "metrics: rexec_audit_commands_total before exec=${before_metric}"
 
 metrics_token="rexec-metrics-$(date +%s)-${RANDOM}"
 kubectl rexec --context "${KUBE_CONTEXT}" exec "${POD}" -n "${NAMESPACE}" -- echo "${metrics_token}" >/dev/null
@@ -151,10 +152,12 @@ if [[ -z "${after_metric}" ]]; then
   echo "error: failed to read rexec_audit_commands_total after rexec exec" >&2
   exit 1
 fi
+echo "metrics: rexec_audit_commands_total after exec=${after_metric}"
 if ! awk -v before="${before_metric}" -v after="${after_metric}" 'BEGIN { exit !(after > before) }'; then
   echo "error: expected rexec_audit_commands_total to increase (before=${before_metric}, after=${after_metric})" >&2
   exit 1
 fi
+echo "metrics: rexec_audit_commands_total delta=$(awk -v before="${before_metric}" -v after="${after_metric}" 'BEGIN { printf "%.0f", after-before }')"
 
 kill "${PF_PID}" >/dev/null 2>&1 || true
 PF_PID=""
